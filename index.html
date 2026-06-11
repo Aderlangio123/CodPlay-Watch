@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LogWatch — Monitoramento de Entregas</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <img src="logo.png" alt="CodplayWatch Logo">
+    </div>
+    <span class="logo-name">Codplay<span>Watch</span></span>
+  </div>
+  <div class="header-meta">
+    <button id="theme-toggle" class="theme-btn" onclick="toggleTheme()" aria-label="Alternar tema" title="Alternar tema">
+      <svg id="theme-icon" viewBox="0 0 24 24"><path d="M12 7a5 5 0 100 10 5 5 0 000-10zM2 13h2a1 1 0 100-2H2a1 1 0 100 2zm18 0h2a1 1 0 100-2h2a1 1 0 100 2zM11 2v2a1 1 0 100 2V2a1 1 0 100-2zm0 18v2a1 1 0 100 2v-2a1 1 0 100-2zM5.99 4.58a1 1 0 111.41 1.41L5.99 4.58zm12.02 12.02a1 1 0 111.41 1.41l-1.41-1.41zM5.99 19.41a1 1 0 11-1.41-1.41l1.41 1.41zm12.02-14.83a1 1 0 11-1.41-1.41l1.41 1.41z"/></svg>
+    </button>
+    <div>
+      <div id="last-update">—</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- FILTERS -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+    <div class="section-label">Filtros</div>
+    <div style="margin-bottom: 14px;">
+        <button onclick="window.print()" class="filter-bar" style="margin:0; padding: 6px 12px; display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 11px; font-family: var(--mono); color: var(--muted);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+            Imprimir Relatório
+        </button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <select id="f-transportadora">
+      <option value="">Todas as transportadoras</option>
+      <option>RotaMax</option>
+      <option>ViaCargo</option>
+      <option>FlashLog</option>
+    </select>
+    <select id="f-regiao">
+      <option value="">Todas as regiões</option>
+      <option>Sudeste</option>
+      <option>Sul</option>
+      <option>Nordeste</option>
+      <option>Norte</option>
+      <option>Centro-Oeste</option>
+    </select>
+    <div class="filter-sep"></div>
+    <button id="btn-todos" class="active" onclick="setStatus('todos',this)">Todas</button>
+    <button id="btn-atrasado" onclick="setStatus('atrasado',this)">Só atrasadas</button>
+    <button id="btn-ok" onclick="setStatus('ok',this)">Só no prazo</button>
+    <div class="filter-sep"></div>
+    <button onclick="resetFilters()">↺ Limpar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="section-label">Visão Geral</div>
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi-card" style="--bar-color:var(--accent)">
+      <div class="kpi-label">Total de entregas</div>
+      <div class="kpi-value" id="k-total">—</div>
+      <div class="kpi-sub">na seleção atual</div>
+      <div class="sparkline"><svg width="100%" height="30" preserveAspectRatio="none" viewBox="0 0 100 30"><path d="M0 25 L20 18 L40 22 L60 10 L80 15 L100 5" stroke="var(--accent)" fill="none" stroke-width="2"/></svg></div>
+    </div>
+    <div class="kpi-card" style="--bar-color:var(--danger)">
+      <div class="kpi-label">Atrasadas</div>
+      <div class="kpi-value" style="--val-color:var(--danger)" id="k-atrasadas">—</div>
+      <div class="kpi-sub" id="k-atrasadas-pct">— % do total</div>
+      <div class="sparkline"><svg width="100%" height="30" preserveAspectRatio="none" viewBox="0 0 100 30"><path d="M0 5 L20 15 L40 10 L60 25 L80 20 L100 28" stroke="var(--danger)" fill="none" stroke-width="2"/></svg></div>
+    </div>
+    <div class="kpi-card" style="--bar-color:var(--ok)">
+      <div class="kpi-label">No prazo</div>
+      <div class="kpi-value" style="--val-color:var(--ok)" id="k-ok">—</div>
+      <div class="kpi-sub" id="k-ok-pct">— % do total</div>
+      <div class="sparkline"><svg width="100%" height="30" preserveAspectRatio="none" viewBox="0 0 100 30"><path d="M0 20 L20 10 L40 15 L60 5 L80 8 L100 2" stroke="var(--ok)" fill="none" stroke-width="2"/></svg></div>
+    </div>
+    <div class="kpi-card" style="--bar-color:var(--warn)">
+      <div class="kpi-label">Atraso médio</div>
+      <div class="kpi-value" style="--val-color:var(--warn)" id="k-media">—</div>
+      <div class="kpi-sub">dias extras (só atrasadas)</div>
+      <div class="sparkline"><svg width="100%" height="30" preserveAspectRatio="none" viewBox="0 0 100 30"><path d="M0 15 L20 15 L40 15 L60 15 L80 15 L100 15" stroke="var(--warn)" fill="none" stroke-width="2"/></svg></div>
+    </div>
+    <div class="kpi-card" style="--bar-color:var(--danger)">
+      <div class="kpi-label">Maior atraso</div>
+      <div class="kpi-value" style="--val-color:var(--danger)" id="k-max">—</div>
+      <div class="kpi-sub" id="k-max-sub">entrega —</div>
+      <div class="sparkline"><svg width="100%" height="30" preserveAspectRatio="none" viewBox="0 0 100 30"><path d="M0 28 L20 20 L40 25 L60 10 L80 5 L100 2" stroke="var(--danger)" fill="none" stroke-width="2"/></svg></div>
+    </div>
+  </div>
+
+  <!-- TRANSPORTADORAS + REGIÕES -->
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title"><span class="dot" style="background:var(--accent)"></span>Taxa de atraso por transportadora</div>
+      <div class="bar-chart" id="chart-transp"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><span class="dot" style="background:var(--warn)"></span>Taxa de atraso por região</div>
+      <div class="region-grid" id="chart-regiao"></div>
+    </div>
+  </div>
+
+  <div class="panel full">
+    <div class="panel-title"><span class="dot" style="background:var(--muted)"></span>Volume de entregas por dia da semana</div>
+    <div style="display: flex; align-items: flex-end; gap: 12px; height: 100px; padding-top: 20px;" id="weekly-chart"></div>
+  </div>
+
+  <!-- PRIORIDADE -->
+  <div class="panel full">
+    <div class="panel-title"><span class="dot" style="background:var(--danger)"></span>Ranking de entregas críticas <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px">— ordenado por dias de atraso</span></div>
+    <div class="priority-list" id="priority-list"></div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="panel full">
+    <div class="panel-title"><span class="dot" style="background:var(--muted)"></span>Todas as entregas <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px" id="table-count"></span></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('id_entrega')" id="th-id">ID</th>
+            <th onclick="sortBy('transportadora')" id="th-transp">Transportadora</th>
+            <th onclick="sortBy('regiao')" id="th-reg">Região</th>
+            <th onclick="sortBy('prazo_dias')" id="th-prazo">Prazo</th>
+            <th onclick="sortBy('dias_reais')" id="th-real">Dias reais</th>
+            <th onclick="sortBy('delta')" id="th-delta">Variação</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
